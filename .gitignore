@@ -1,0 +1,54 @@
+# MAVEN
+
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# JAVA
+
+*.class
+*.log
+
+# IDE - VS CODE
+
+.vscode/
+*.code-workspace
+
+# IDE - Eclipse / Spring Tool Suite
+
+.classpath
+.project
+.settings/
+
+# IDE - IntelliJ IDEA
+
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# OS
+
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+
+.env
+.env.*
+!.env.example
+
+# Oracle Wallet
+
+wallet/
+Wallet_*/
+*.sso
+*.p12
+*.pem
+*.jks
