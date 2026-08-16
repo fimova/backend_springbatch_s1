@@ -11,7 +11,7 @@ de datos Oracle.
 
 El proyecto implementa tres procesos independientes:
 
-- Reporte de movimientos anuales
+- Generación de estados de cuenta anuales
 - Cálculo de intereses mensuales
 - Reporte de transacciones diarias
 
