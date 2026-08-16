@@ -92,10 +92,10 @@ encuentran almacenadas en el repositorio.
 La configuración se realiza mediante las variables de entorno desde
 application.properties:
 
-DB_URL
-DB_USERNAME
-DB_PASSWORD
-DB_TNS_ADMIN
+- DB_URL
+- DB_USERNAME
+- DB_PASSWORD
+- DB_TNS_ADMIN
 
 ## Ejecución
 
@@ -157,8 +157,8 @@ Los Jobs disponibles son:
 - `cuentaInteresJob`
 - `transaccionJob`
 
-La propiedad puede agregarse temporalmente en `application.properties`
-antes de ejecutar la aplicación, seleccionando el Job que se desea
+La propiedad **debe** agregarse temporalmente en `application.properties`
+**antes** de ejecutar la aplicación, seleccionando el Job que se desea
 ejecutar.
 
 Después de seleccionar el Job, se puede ejecutar la aplicación
