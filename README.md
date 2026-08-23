@@ -1,4 +1,4 @@
-# Semana 1 - Spring Batch
+# Semana 2 - Spring Batch
 
 ## Descripción
 
@@ -96,6 +96,53 @@ application.properties:
 - DB_USERNAME
 - DB_PASSWORD
 - DB_TNS_ADMIN
+
+## Procesamiento y tolerancia a fallos
+
+Los Jobs fueron configurados para procesar los archivos mediante chunks de tamaño 5,
+permitiendo agrupar los registros y gestionar las transacciones de forma más eficiente.
+
+Además, cada Job utiliza procesamiento paralelo para procesar chunks 
+de manera concurrente mediante un ThreadPoolTaskExecutor configurado con:
+
+- 3 hilos (corePoolSize)
+- 3 hilos máximos (maxPoolSize)
+- Capacidad de cola de 3 tareas (queueCapacity)
+- Un prefijo de nombre de hilo específico para cada Job
+
+### Tolerancia a fallos
+
+Los Jobs utilizan políticas de tolerancia a fallos mediante `faultTolerant()`.
+
+Las excepciones propias de las reglas de negocio son controladas mediante skip, 
+permitiendo omitir registros inválidos sin detener completamente el procesamiento.
+
+Además, se implementaron políticas de reintento para errores transitorios
+relacionados con el acceso a la base de datos:
+
+- `CannotAcquireLockException`
+- `TransientDataAccessException`
+
+Cada una de estas excepciones puede ser reintentada hasta 3 veces mediante `retryLimit(3)`.
+
+### Monitoreo del rendimiento
+
+Para observar el comportamiento del procesamiento y evaluar el uso de recursos durante la ejecución de los Jobs,
+los `StepExecutionListener` registran información sobre la ejecución de cada Step, incluyendo:
+
+- Cantidad de registros leídos
+- Cantidad de registros escritos
+- Cantidad de registros omitidos
+- Cantidad de errores
+- Tiempo de ejecución
+- Memoria utilizada
+- Memoria máxima disponible
+
+### Cierre de recursos 
+
+Para evitar que los hilos del procesamiento paralelo mantengan la aplicación en ejecución
+una vez finalizado el Job, se implementó un componente `ExecutorShutdown` que cierra
+los ThreadPoolTaskExecutor mediante `@PreDestroy`.
 
 ## Ejecución
 

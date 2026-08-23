@@ -8,8 +8,12 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.ItemReader;
 import org.springframework.batch.infrastructure.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import com.duoc.semana1.exception.MovimientoAnualException;
@@ -28,18 +32,23 @@ public class BatchConfig {
             ItemReader<MovimientoAnual> movimientoAnualReader,
             ItemProcessor<MovimientoAnual, MovimientoAnual> movimientoAnualProcessor,
             ItemWriter<MovimientoAnual> movimientoAnualWriter,
-            MovimientoAnualStepExecutionListener movimientoAnualStepExecutionListener
+            MovimientoAnualStepExecutionListener movimientoAnualStepExecutionListener,
+            @Qualifier ("movimientoAnualTaskExecutor") ThreadPoolTaskExecutor taskExecutor
     ) {
 
         return new StepBuilder("movimientoAnualStep", jobRepository)
-                .<MovimientoAnual, MovimientoAnual>chunk(10)
+                .<MovimientoAnual, MovimientoAnual>chunk(5)
                 .reader(movimientoAnualReader)
                 .processor(movimientoAnualProcessor)
                 .writer(movimientoAnualWriter)
                 .faultTolerant() //tolerancia hacia ciertos errores
                 .skip(MovimientoAnualException.class) //este explica cual tolerancia y cual saltarse
                 .skipLimit(10) //max 10 skips permitidos
+                .retryLimit(3)
+                .retry(CannotAcquireLockException.class)
+                .retry(TransientDataAccessException.class)
                 .listener(movimientoAnualStepExecutionListener)
+                .taskExecutor(taskExecutor)
                 .build();
     }
 
@@ -53,5 +62,16 @@ public class BatchConfig {
         .start(movimientoAnualStep)
         .listener(jobCompletionListener)
         .build();
+    }
+
+    @Bean(name="movimientoAnualTaskExecutor")
+    public ThreadPoolTaskExecutor taskExecutor () {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(3);
+        executor.setMaxPoolSize(3);
+        executor.setQueueCapacity(3);
+        executor.setThreadNamePrefix("movimientoAnualThread");
+        executor.initialize();
+        return executor;
     }
 }

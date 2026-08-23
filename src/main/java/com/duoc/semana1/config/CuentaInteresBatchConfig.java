@@ -8,8 +8,12 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.ItemReader;
 import org.springframework.batch.infrastructure.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import com.duoc.semana1.exception.CuentaInteresException;
@@ -27,19 +31,24 @@ public class CuentaInteresBatchConfig {
             ItemReader<CuentaInteres> cuentaInteresReader,
             ItemProcessor<CuentaInteres, CuentaInteres> cuentaInteresProcessor,
             ItemWriter<CuentaInteres> cuentaInteresWriter,
-            CuentaInteresStepExecutionListener cuentaInteresStepExecutionListener
+            CuentaInteresStepExecutionListener cuentaInteresStepExecutionListener,
+            @Qualifier ("cuentaInteresTaskExecutor") ThreadPoolTaskExecutor taskExecutor
     ) {
 
         return new StepBuilder("cuentaInteresStep", jobRepository)
-                .<CuentaInteres, CuentaInteres>chunk(10)
+                .<CuentaInteres, CuentaInteres>chunk(5)
                 .reader(cuentaInteresReader)
                 .processor(cuentaInteresProcessor)
                 .writer(cuentaInteresWriter)
                 .faultTolerant()
                 .skip(CuentaInteresException.class)
                 .skipLimit(10)
+                .retryLimit(3)
+                .retry(CannotAcquireLockException.class)
+                .retry(TransientDataAccessException.class)
                 .listener(cuentaInteresStepExecutionListener)
                 .transactionManager(transactionManager)
+                .taskExecutor(taskExecutor)
                 .build();
     }
 
@@ -54,5 +63,16 @@ public class CuentaInteresBatchConfig {
                 .start(cuentaInteresStep)
                 .listener(jobCompletionListener)
                 .build();
+    }
+
+    @Bean(name="cuentaInteresTaskExecutor")
+    public ThreadPoolTaskExecutor taskExecutor () {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(3);
+        executor.setMaxPoolSize(3);
+        executor.setQueueCapacity(3);
+        executor.setThreadNamePrefix("cuentaInteresThread");
+        executor.initialize();
+        return executor;
     }
 }
