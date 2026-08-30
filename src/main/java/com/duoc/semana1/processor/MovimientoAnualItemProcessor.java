@@ -1,5 +1,7 @@
 package com.duoc.semana1.processor;
 
+import java.text.Normalizer;
+
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
@@ -39,6 +41,11 @@ public class MovimientoAnualItemProcessor
                 .trim()
                 .toLowerCase();
 
+        transaccion = Normalizer.normalize(transaccion, Normalizer.Form.NFD)
+        .replaceAll("\\p{M}", "");
+
+        movimientoAnual.setTransaccion(transaccion);
+
         movimientoAnual.setTransaccion(transaccion);
 
         movimientoAnual.setDescripcion(movimientoAnual.getDescripcion().trim()
@@ -52,18 +59,11 @@ public class MovimientoAnualItemProcessor
             throw new MovimientoAnualException("Tipo de transacción no válido: " + transaccion);
         }
 
-        // Validación del monto según el tipo de transacción
-        if (transaccion.equals("deposito")
-                && movimientoAnual.getMonto().signum() <= 0) {
-
-            throw new MovimientoAnualException("Un depósito debe tener un monto mayor a cero.");
-        }
-
-        if ((transaccion.equals("retiro")
-                || transaccion.equals("compra"))
-                && movimientoAnual.getMonto().signum() >= 0) {
-
-            throw new MovimientoAnualException("Un retiro o compra debe tener un monto menor a cero.");
+        // Validación del monto 
+        if (movimientoAnual.getMonto().signum() <= 0) {
+            throw new MovimientoAnualException(
+                "El monto debe ser mayor a cero."
+            );
         }
 
         return movimientoAnual;

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.duoc.semana1.exception.CuentaInteresException;
@@ -12,6 +13,9 @@ import com.duoc.semana1.model.CuentaInteres;
 @Component
 public class CuentaInteresItemProcessor
         implements ItemProcessor<CuentaInteres, CuentaInteres> {
+
+    @Value("${app.intereses.periodo}")
+    private String periodo;
 
     @Override
     public CuentaInteres process(CuentaInteres cuenta) {
@@ -22,7 +26,8 @@ public class CuentaInteresItemProcessor
                     "La cuentaId es obligatoria y mayor a cero.");
         }
 
-        if (cuenta.getNombre() == null || cuenta.getNombre().isBlank()) {
+        if (cuenta.getNombre() == null || cuenta.getNombre().isBlank() 
+            || cuenta.getNombre().trim().equalsIgnoreCase("unkonwn")) {
             throw new CuentaInteresException(
                     "El nombre es obligatorio.");
         }
@@ -45,6 +50,9 @@ public class CuentaInteresItemProcessor
         // Normalización
         cuenta.setNombre(cuenta.getNombre().trim());
         cuenta.setTipo(cuenta.getTipo().trim().toLowerCase());
+
+        // Asignar período del procesamiento
+        cuenta.setPeriodo(periodo);
 
         // Validación del tipo
         if (!cuenta.getTipo().equals("ahorro")

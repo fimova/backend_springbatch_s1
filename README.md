@@ -1,4 +1,4 @@
-# Semana 2 - Spring Batch
+# Semana 3 - Spring Batch
 
 ## Descripción
 
@@ -28,6 +28,39 @@ ItemReader, ItemProcessor y ItemWriter.
 - JDBC
 - JUnit
 - Mockito
+- SLF4J / Logback
+
+## Arquitectura escogida
+
+Se implementó procesamiento multithread mediante `ThreadPoolTaskExecutor` en los tres Steps.
+
+La decisión se tomó considerando el tamaño de los datasets utilizados, la naturaleza del procesamiento
+y la complejidad adicional que implica una estrategia de particionamiento.
+
+Se realizaron pruebas de rendimiento modificando el tamaño del chunk y los parámetros del pool 
+de ejecución, observando su impacto sobre el tiempo de ejecución, memoria utilizada 
+y estabilidad del procesamiento.
+
+Para el escenario actual se determinó que el procesamiento multithread permite incorporar 
+concurrencia de forma adecuada sin necesidad de implementar partitioning. 
+Además, se incorporó `CallerRunsPolicy` para aplicar backpressure cuando el executor 
+alcanza su capacidad, evitando el rechazo de nuevas tareas.
+
+## Configuración del rendimiento
+
+Los parámetros de concurrencia se encuentran externalizados en application.properties, 
+permitiendo modificar la configuración sin alterar el código fuente.
+
+Los principales parámetros configurables son:
+
+- Tamaño del chunk
+- Core Pool Size
+- Max Pool Size
+- Queue Capacity
+
+Las configuraciones utilizadas pueden variar según el Job y el entorno de ejecución. 
+Los valores empleados para las pruebas de esta entrega fueron seleccionados a partir de benchmarking 
+y observación del comportamiento de cada proceso.
 
 ## Estructura del proyecto
 
@@ -99,16 +132,15 @@ application.properties:
 
 ## Procesamiento y tolerancia a fallos
 
-Los Jobs fueron configurados para procesar los archivos mediante chunks de tamaño 5,
-permitiendo agrupar los registros y gestionar las transacciones de forma más eficiente.
+Los Jobs utilizan procesamiento por chunks y ejecución concurrente mediante `ThreadPoolTaskExecutor`.
 
-Además, cada Job utiliza procesamiento paralelo para procesar chunks 
-de manera concurrente mediante un ThreadPoolTaskExecutor configurado con:
+El tamaño del chunk y los parámetros del executor se encuentran definidos mediante 
+propiedades externas en `application.properties`, permitiendo ajustar la configuración 
+de acuerdo con las características del proceso y los recursos disponibles.
 
-- 3 hilos (corePoolSize)
-- 3 hilos máximos (maxPoolSize)
-- Capacidad de cola de 3 tareas (queueCapacity)
-- Un prefijo de nombre de hilo específico para cada Job
+El executor utiliza `CallerRunsPolicy` como estrategia ante saturación, 
+permitiendo que el hilo que intenta enviar una tarea la ejecute directamente 
+cuando el pool y la cola se encuentran ocupados.
 
 ### Tolerancia a fallos
 
@@ -125,11 +157,28 @@ relacionados con el acceso a la base de datos:
 
 Cada una de estas excepciones puede ser reintentada hasta 3 veces mediante `retryLimit(3)`.
 
-### Monitoreo del rendimiento
+También se controla `DuplicateKeyException` en los procesos correspondientes, 
+permitiendo manejar registros que ya fueron almacenados previamente.
 
-Para observar el comportamiento del procesamiento y evaluar el uso de recursos durante la ejecución de los Jobs,
-los `StepExecutionListener` registran información sobre la ejecución de cada Step, incluyendo:
+### Idempotencia
 
+Los procesos cuentan con mecanismos de idempotencia mediante restricciones de 
+unicidad en las tablas de destino y el manejo de `DuplicateKeyException`.
+
+Esto permite realizar reejecuciones de los Jobs sin generar duplicaciones de 
+información previamente almacenada. Los registros que ya cumplen las condiciones de 
+unicidad son detectados y omitidos durante la escritura.
+
+### Monitoreo y logging
+
+Para observar el comportamiento de los procesos se implementaron `StepExecutionListener` 
+y `JobExecutionListener`.
+
+Los listeners registran información relevante de cada ejecución, incluyendo:
+
+- Job ejecutado
+- Step ejecutado
+- Estado de la ejecución
 - Cantidad de registros leídos
 - Cantidad de registros escritos
 - Cantidad de registros omitidos
@@ -137,6 +186,14 @@ los `StepExecutionListener` registran información sobre la ejecución de cada S
 - Tiempo de ejecución
 - Memoria utilizada
 - Memoria máxima disponible
+
+El registro se realiza mediante SLF4J/Logback, utilizando distintos niveles según el tipo de evento:
+
+- INFO: inicio y finalización de Jobs y Steps, además de métricas generales.
+- WARN: registros omitidos y situaciones esperadas que requieren seguimiento.
+- ERROR: errores inesperados o fallos durante la ejecución.
+
+Los mensajes incluyen información del Job y Step correspondiente, facilitando la trazabilidad de las ejecuciones.
 
 ### Cierre de recursos 
 
@@ -187,7 +244,22 @@ que contiene la creación de las tablas utilizadas por los Jobs.
 Además, Spring Batch inicializa las tablas necesarias para mantener
 el historial de ejecución de los Jobs.
 
-### 4. Ejecución de los Jobs
+### 4. Configuración de los parámetros de ejecución
+
+Los parámetros de concurrencia se encuentran en application.properties 
+y pueden modificarse antes de ejecutar la aplicación.
+
+Entre ellos se encuentran:
+
+app.movimiento.chunk-size=20
+app.movimiento.core-pool-size=4
+app.movimiento.max-pool-size=8
+app.movimiento.queue-capacity=50
+
+Los nombres y valores pueden variar según el Job. Se recomienda revisar 
+las propiedades correspondientes antes de ejecutar cada proceso.
+
+### 5. Ejecución de los Jobs
 
 El proyecto contiene tres Jobs independientes. Para ejecutar un Job
 específico, se debe indicar su nombre mediante la propiedad:
@@ -211,7 +283,7 @@ ejecutar.
 Después de seleccionar el Job, se puede ejecutar la aplicación
 Spring Boot normalmente.
 
-### 5. Archivos de entrada
+### 6. Archivos de entrada
 
 Los archivos CSV utilizados por los Jobs se encuentran en:
 

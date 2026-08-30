@@ -1,5 +1,7 @@
 package com.duoc.semana1.config;
 
+import java.math.BigDecimal;
+
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
 import org.springframework.batch.infrastructure.item.file.builder.FlatFileItemReaderBuilder;
@@ -39,26 +41,37 @@ public class CuentaInteresItemReaderConfig {
 
     private FieldSetMapper<CuentaInteres> cuentaInteresFieldSetMapper() {
 
-        return fieldSet -> {
+                return fieldSet -> {
 
-            CuentaInteres cuenta = new CuentaInteres();
+                        CuentaInteres cuenta = new CuentaInteres();
 
-            cuenta.setCuentaId(
-                    fieldSet.readLong("cuentaId"));
+                        // cuentaId siempre obligatorio
+                        cuenta.setCuentaId(fieldSet.readLong("cuentaId"));
 
-            cuenta.setNombre(
-                    fieldSet.readString("nombre"));
+                        // nombre como String directo
+                        cuenta.setNombre(fieldSet.readString("nombre"));
 
-            cuenta.setSaldo(
-                    fieldSet.readBigDecimal("saldo"));
+                        // saldo: leer como string y convertir si no está vacío
+                        String saldoStr = fieldSet.readString("saldo");
+                        BigDecimal saldo = null;
+                        if (saldoStr != null && !saldoStr.isBlank()) {
+                        saldo = new BigDecimal(saldoStr);
+                        }
+                        cuenta.setSaldo(saldo);
 
-            cuenta.setEdad(
-                    fieldSet.readInt("edad"));
+                        // edad: leer como string y convertir si no está vacío
+                        String edadStr = fieldSet.readString("edad");
+                        Integer edad = null;
+                        if (edadStr != null && !edadStr.isBlank()) {
+                        edad = Integer.valueOf(edadStr);
+                        }
+                        cuenta.setEdad(edad);
 
-            cuenta.setTipo(
-                    fieldSet.readString("tipo"));
+                        // tipo como string directo
+                        cuenta.setTipo(fieldSet.readString("tipo"));
 
-            return cuenta;
-        };
-    }
+                        return cuenta;
+                };
+        }
+
 }

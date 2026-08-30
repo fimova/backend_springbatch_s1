@@ -11,6 +11,7 @@ public class CuentaInteres {
     private String tipo;
     private BigDecimal saldoFinal;
     private BigDecimal interesAplicado;
+    private String periodo;
 
     public CuentaInteres() {
     }
@@ -69,6 +70,14 @@ public class CuentaInteres {
 
     public void setInteresAplicado(BigDecimal interesAplicado){
         this.interesAplicado=interesAplicado;
+    }
+
+    public String getPeriodo(){
+        return periodo;
+    }
+
+    public void setPeriodo(String periodo){
+        this.periodo=periodo;
     }
     
 }

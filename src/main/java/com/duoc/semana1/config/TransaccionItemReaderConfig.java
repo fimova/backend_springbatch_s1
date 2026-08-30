@@ -1,6 +1,8 @@
 package com.duoc.semana1.config;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
@@ -67,10 +69,31 @@ public class TransaccionItemReaderConfig {
     }
 
     private LocalDate convertirFecha(String valor) {
-        if (valor==null || valor.isBlank()) {
+
+        if (valor == null || valor.isBlank()) {
             return null;
         }
 
-        return LocalDate.parse(valor.trim());
+        String fecha = valor.trim();
+
+        DateTimeFormatter[] formatos = {
+                DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+                DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd"),
+                DateTimeFormatter.ofPattern("yyyy-dd-MM") //fecha extraña.. se podría dejar registro como "anomalia"
+        };
+
+        for (DateTimeFormatter formato : formatos) {
+            try {
+                return LocalDate.parse(fecha, formato);
+            } catch (DateTimeParseException e) {
+                // Intenta con el siguiente formato
+            }
+        }
+
+        throw new IllegalArgumentException(
+                "Formato de fecha no válido: " + fecha //también se podría intentar retornar null, que processor valide
+        );
     }
 }

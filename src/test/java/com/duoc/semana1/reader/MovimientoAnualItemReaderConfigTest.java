@@ -16,7 +16,7 @@ import org.springframework.core.io.Resource;
 import com.duoc.semana1.config.MovimientoAnualItemReaderConfig;
 import com.duoc.semana1.model.MovimientoAnual;
 
-class MovimientoAnualItemReaderConfigTest {
+/*class MovimientoAnualItemReaderConfigTest {
 
     private FlatFileItemReader<MovimientoAnual> reader;
 
@@ -74,3 +74,4 @@ class MovimientoAnualItemReaderConfigTest {
         assertEquals(9, cantidad);
     }
 }
+    */

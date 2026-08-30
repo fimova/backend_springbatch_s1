@@ -4,7 +4,10 @@ CREATE TABLE movimientos_anuales (
     fecha DATE NOT NULL,
     transaccion VARCHAR2(20) NOT NULL,
     monto NUMBER(15,2) NOT NULL,
-    descripcion VARCHAR2(200) NOT NULL
+    descripcion VARCHAR2(200) NOT NULL,
+
+    CONSTRAINT uk_movimiento_anual
+        UNIQUE (cuenta_id, fecha, transaccion, monto, descripcion)
 );
 
 CREATE TABLE cuentas_intereses (
@@ -14,7 +17,18 @@ CREATE TABLE cuentas_intereses (
     saldo_inicial NUMBER(15,2) NOT NULL,
     tipo VARCHAR2(20) NOT NULL,
     interes_aplicado NUMBER(15,2) NOT NULL,
-    saldo_final NUMBER(15,2) NOT NULL
+    saldo_final NUMBER(15,2) NOT NULL,
+    periodo VARCHAR2(7) NOT NULL,
+
+    CONSTRAINT uk_cuenta_interes
+        UNIQUE (
+            cuenta_id,
+            nombre,
+            saldo_inicial,
+            edad,
+            tipo,
+            periodo
+        )
 );
 
 CREATE TABLE transacciones_diarias (

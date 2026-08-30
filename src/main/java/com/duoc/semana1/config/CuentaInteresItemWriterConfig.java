@@ -25,17 +25,21 @@ public class CuentaInteresItemWriterConfig {
                             cuenta_id,
                             nombre,
                             saldo_inicial,
+                            edad,
                             tipo,
                             interes_aplicado,
-                            saldo_final
+                            saldo_final,
+                            periodo
                         )
                         VALUES (
                             :cuentaId,
                             :nombre,
                             :saldo,
+                            :edad,
                             :tipo,
                             :interesAplicado,
-                            :saldoFinal
+                            :saldoFinal,
+                            :periodo
                         )
                         """)
                 .assertUpdates(true)
