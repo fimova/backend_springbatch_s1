@@ -110,6 +110,7 @@ Por ejemplo, un usuario autenticado con `ROLE_MOBILE` puede acceder al Mobile BF
 
 ## Estructura del proyecto
 
+```texto
 ├───src
 │   ├───main
 │   │   ├───java
@@ -214,6 +215,7 @@ Por ejemplo, un usuario autenticado con `ROLE_MOBILE` puede acceder al Mobile BF
 │   │           logback-spring.xml
 │   │           schema.sql
 │   │           transacciones.csv
+```
 
 ## Procesamiento de datos
 
@@ -288,16 +290,21 @@ El proyecto requiere un usuario de Oracle con permisos suficientes
 para conectarse a la base de datos y crear las tablas utilizadas por
 la aplicación.
 
-Al iniciar la aplicación, Spring ejecuta el archivo `schema.sql`,
+Al iniciar la aplicación por primera vez, Spring ejecuta el archivo `schema.sql`,
 que contiene la creación de las tablas utilizadas por los Jobs.
 
-Además, Spring Batch inicializa las tablas necesarias para mantener
+Además, la primera vez Spring Batch también inicializa las tablas necesarias para mantener
 el historial de ejecución de los Jobs.
+
+Esta configuración puede ser cambiada desde `application.properties`, cambiando 
+`spring.sql.init.mode` y `spring.batch.jdbc.initialize-schema` a `never`.
 
 ### 4. Ejecución de los Jobs
 
-El proyecto contiene tres Jobs independientes. Para ejecutar un Job
-específico, se debe indicar su nombre mediante la propiedad:
+El proyecto contiene tres Jobs independientes, los cuales se recomiendan ejecutar previo a
+realizar llamados a los BFF.
+
+Para ejecutar un Job específico, se debe indicar su nombre mediante la propiedad:
 
 `spring.batch.job.name`
 
@@ -326,10 +333,12 @@ Antes de acceder a los BFF se debe obtener un token mediante:
 
 Ejemplo:
 
+```json
 {
     "username": "usuarioMobile",
     "password": "mobile123"
 }
+```
 
 El token obtenido debe utilizarse en las solicitudes protegidas mediante el header:
 
