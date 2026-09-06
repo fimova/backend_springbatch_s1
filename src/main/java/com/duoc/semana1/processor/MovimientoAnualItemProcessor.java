@@ -46,8 +46,6 @@ public class MovimientoAnualItemProcessor
 
         movimientoAnual.setTransaccion(transaccion);
 
-        movimientoAnual.setTransaccion(transaccion);
-
         movimientoAnual.setDescripcion(movimientoAnual.getDescripcion().trim()
         );
 

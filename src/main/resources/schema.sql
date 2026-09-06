@@ -15,6 +15,7 @@ CREATE TABLE cuentas_intereses (
     cuenta_id NUMBER NOT NULL,
     nombre VARCHAR2(100) NOT NULL,
     saldo_inicial NUMBER(15,2) NOT NULL,
+    edad NUMBER NOT NULL,
     tipo VARCHAR2(20) NOT NULL,
     interes_aplicado NUMBER(15,2) NOT NULL,
     saldo_final NUMBER(15,2) NOT NULL,

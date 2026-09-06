@@ -1,27 +1,105 @@
-# Semana 3 - Spring Batch
+# Semana 4 - Backend for Frontend (BFF)
 
 ## Descripción
 
-Proyecto desarrollado utilizando Spring Boot y Spring Batch para
-procesar archivos CSV mediante Jobs de procesamiento por lotes,
-validando, transformando y almacenando la información en una base
-de datos Oracle.
+Proyecto desarrollado utilizando Spring Boot para implementar el patrón Backend for Frontend (BFF) en un sistema bancario.
+
+La aplicación proporciona un backend específico para cada tipo de cliente del Banco XYZ, adaptando la información y las respuestas según las necesidades de cada canal:
+
+- Web
+- Aplicación móvil
+- Cajero automático (ATM)
+
+El proyecto mantiene los procesos de carga y procesamiento de datos desarrollados durante la Semana 3 mediante Spring Batch, utilizando Oracle Database como sistema de almacenamiento.
 
 ## Objetivo
 
-El proyecto implementa tres procesos independientes:
+Implementar una arquitectura BFF que permita:
 
-- Generación de estados de cuenta anuales
-- Cálculo de intereses mensuales
-- Reporte de transacciones diarias
+Personalizar las respuestas según el frontend.
+Reducir la cantidad de información enviada a clientes con restricciones de ancho de banda.
+Centralizar la composición de información necesaria para cada canal.
+Aplicar autenticación y autorización específicas para cada tipo de cliente.
 
-Cada proceso utiliza la estructura de Spring Batch basada en
-ItemReader, ItemProcessor y ItemWriter.
+## Arquitectura escogida
 
-## Tecnologías utilizadas
+Se seleccionó la estrategia BFF basada en microservicios, implementando un BFF específico para cada canal.
+
+Debido al alcance del proyecto, los tres BFF se encuentran actualmente modularizados dentro de una misma aplicación Spring Boot, manteniendo separación de responsabilidades y permitiendo una futura separación física en microservicios independientes.
+
+## BFF implementados
+
+### Web BFF
+
+Endpoint:
+
+`GET /api/web/cuentas/{cuentaId}/resumen`
+
+Proporciona información completa para interfaces web, incluyendo:
+
+- Información de la cuenta.
+- Datos de intereses.
+- Movimientos.
+- Transacciones.
+
+### Mobile BFF
+
+Endpoint:
+
+`GET /api/mobile/cuentas/{cuentaId}/resumen`
+
+Entrega una respuesta más liviana, adaptada a dispositivos móviles:
+
+- Información esencial de la cuenta.
+- Interés aplicado.
+- Período.
+- Los 3 movimientos más recientes.
+
+Se evita enviar información innecesaria para reducir el tamaño de la respuesta.
+
+### ATM BFF
+
+Endpoint:
+
+`GET /api/atm/cuentas/{cuentaId}/saldo`
+
+Entrega únicamente la información necesaria para una consulta de saldo:
+
+- Identificador de cuenta.
+- Saldo de referencia.
+
+El saldo utilizado corresponde al saldo_inicial del período más reciente disponible en cuentas_intereses, debido a que el esquema actual no posee una tabla de cuentas con un saldo actual independiente.
+
+## Seguridad
+
+Se implementó autenticación y autorización mediante Spring Security y JWT.
+
+Cada canal posee un rol específico:
+
+| Canal | Rol |
+| :---: | :---: |
+| Web | ROL_WEB |
+| Mobile | ROL_MOBILE |
+| Atm | ROL_ATM |
+
+El proceso de autenticación se realiza mediante:
+
+`POST /auth/login`
+
+El usuario obtiene un token JWT que posteriormente debe enviarse mediante:
+
+`Authorization: Bearer <token>`
+
+Los endpoints se encuentran protegidos según el rol correspondiente.
+
+Por ejemplo, un usuario autenticado con `ROLE_MOBILE` puede acceder al Mobile BFF, pero no al Web BFF ni al ATM BFF.
+
+## Tecnología utilizada
 
 - Java 21
 - Spring Boot
+- Spring Security
+- JWT
 - Spring Batch
 - Maven
 - Oracle Database
@@ -30,89 +108,124 @@ ItemReader, ItemProcessor y ItemWriter.
 - Mockito
 - SLF4J / Logback
 
-## Arquitectura escogida
-
-Se implementó procesamiento multithread mediante `ThreadPoolTaskExecutor` en los tres Steps.
-
-La decisión se tomó considerando el tamaño de los datasets utilizados, la naturaleza del procesamiento
-y la complejidad adicional que implica una estrategia de particionamiento.
-
-Se realizaron pruebas de rendimiento modificando el tamaño del chunk y los parámetros del pool 
-de ejecución, observando su impacto sobre el tiempo de ejecución, memoria utilizada 
-y estabilidad del procesamiento.
-
-Para el escenario actual se determinó que el procesamiento multithread permite incorporar 
-concurrencia de forma adecuada sin necesidad de implementar partitioning. 
-Además, se incorporó `CallerRunsPolicy` para aplicar backpressure cuando el executor 
-alcanza su capacidad, evitando el rechazo de nuevas tareas.
-
-## Configuración del rendimiento
-
-Los parámetros de concurrencia se encuentran externalizados en application.properties, 
-permitiendo modificar la configuración sin alterar el código fuente.
-
-Los principales parámetros configurables son:
-
-- Tamaño del chunk
-- Core Pool Size
-- Max Pool Size
-- Queue Capacity
-
-Las configuraciones utilizadas pueden variar según el Job y el entorno de ejecución. 
-Los valores empleados para las pruebas de esta entrega fueron seleccionados a partir de benchmarking 
-y observación del comportamiento de cada proceso.
-
 ## Estructura del proyecto
 
-src/
-├── main/
-│   ├── java/com/duoc/semana1/
-│   │   ├── config/
-│   │   ├── exception/
-│   │   ├── listener/
-│   │   ├── model/
-│   │   └── processor/
-│   └── resources/
-│       ├── *.csv
-│       ├── application.properties
-│       └── schema.sql
-└── test/
-    └── java/com/duoc/semana1/
-        ├── processor/
-        ├── reader/
-        └── writer/
+├───src
+│   ├───main
+│   │   ├───java
+│   │   │   └───com
+│   │   │       └───duoc
+│   │   │           └───semana1
+│   │   │               │   Semana1Application.java
+│   │   │               │
+│   │   │               ├───bff
+│   │   │               │   ├───atm
+│   │   │               │   │   │   AtmBffController.java
+│   │   │               │   │   │   AtmBffService.java
+│   │   │               │   │   │
+│   │   │               │   │   └───dto
+│   │   │               │   │           AtmDepositoRequest.java
+│   │   │               │   │           AtmDepositoResponse.java
+│   │   │               │   │           AtmRetiroRequest.java
+│   │   │               │   │           AtmRetiroResponse.java
+│   │   │               │   │           AtmSaldoResponse.java
+│   │   │               │   │
+│   │   │               │   ├───mobile
+│   │   │               │   │   │   MobileBffController.java
+│   │   │               │   │   │   MobileBffService.java
+│   │   │               │   │   │
+│   │   │               │   │   └───dto
+│   │   │               │   │           MobileCuentaResponse.java
+│   │   │               │   │           MobileMovimientoResponse.java
+│   │   │               │   │           MobileResumenResponse.java
+│   │   │               │   │
+│   │   │               │   └───web
+│   │   │               │       │   WebBffController.java
+│   │   │               │       │   WebBffService.java
+│   │   │               │       │
+│   │   │               │       └───dto
+│   │   │               │               WebCuentaResponse.java
+│   │   │               │               WebInteresResponse.java
+│   │   │               │               WebMovimientoResponse.java
+│   │   │               │               WebResumenResponse.java
+│   │   │               │               WebTransaccionResponse.java
+│   │   │               │
+│   │   │               ├───config
+│   │   │               │       BatchConfig.java
+│   │   │               │       CuentaInteresBatchConfig.java
+│   │   │               │       CuentaInteresItemReaderConfig.java
+│   │   │               │       CuentaInteresItemWriterConfig.java
+│   │   │               │       DataSourceConfig.java
+│   │   │               │       ExecutorShutdown.java
+│   │   │               │       MovimientoAnualItemReaderConfig.java
+│   │   │               │       MovimientoAnualItemWriterConfig.java
+│   │   │               │       TransaccionBatchConfig.java
+│   │   │               │       TransaccionItemReaderConfig.java
+│   │   │               │       TransaccionItemWriterConfig.java
+│   │   │               │
+│   │   │               ├───exception
+│   │   │               │       CuentaInteresException.java
+│   │   │               │       ErrorResponse.java
+│   │   │               │       GlobalExceptionHandler.java
+│   │   │               │       MovimientoAnualException.java
+│   │   │               │       ResourceNotFoundException.java
+│   │   │               │       TransaccionException.java
+│   │   │               │
+│   │   │               ├───listener
+│   │   │               │       CuentaInteresStepExecutionListener.java
+│   │   │               │       JobCompletionListener.java
+│   │   │               │       MovimientoAnualStepExecutionListener.java
+│   │   │               │       TransaccionStepExecutionListener.java
+│   │   │               │
+│   │   │               ├───model
+│   │   │               │       CuentaInteres.java
+│   │   │               │       MovimientoAnual.java
+│   │   │               │       Transaccion.java
+│   │   │               │
+│   │   │               ├───processor
+│   │   │               │       CuentaInteresItemProcessor.java
+│   │   │               │       MovimientoAnualItemProcessor.java
+│   │   │               │       TransaccionItemProcessor.java
+│   │   │               │
+│   │   │               ├───repository
+│   │   │               │       CuentaInteresRepository.java
+│   │   │               │       MovimientoAnualRepository.java
+│   │   │               │       TransaccionRepository.java
+│   │   │               │
+│   │   │               ├───security
+│   │   │               │   │   AuthController.java
+│   │   │               │   │   JwtAuthenticationFilter.java
+│   │   │               │   │   JwtService.java
+│   │   │               │   │   SecurityConfig.java
+│   │   │               │   │
+│   │   │               │   └───dto
+│   │   │               │           LoginRequest.java
+│   │   │               │           LoginResponse.java
+│   │   │               │
+│   │   │               └───services
+│   │   │                       CuentaInteresService.java
+│   │   │                       MovimientoAnualService.java
+│   │   │                       TransaccionService.java
+│   │   │
+│   │   └───resources
+│   │           application.properties
+│   │           cuentas_anuales.csv
+│   │           intereses.csv
+│   │           logback-spring.xml
+│   │           schema.sql
+│   │           transacciones.csv
 
-## Jobs implementados
+## Procesamiento de datos
 
-1. Movimiento Anual
+Los datos utilizados por los BFF son generados mediante los procesos de Spring Batch implementados durante la Semana 3.
 
-Procesa el archivo cuentas_anuales.csv, valida los registros y 
-almacena los movimientos válidos en la base de datos.
+Se mantienen tres Jobs:
 
-Los registros que no cumplen con las reglas de negocio son omitidos
-mediante el mecanismo de  tolerancia a fallo (faultTolerant) y
-skip de Spring Batch.
+- `movimientoAnualJob`
+- `cuentaInteresJob`
+- `transaccionJob`
 
-2. Calculo de Intereses Mensuales
-
-Procesa intereses.csv, calcula el interés correspondiente según
-el tipo de cuenta y genera un saldo final.
-
-Para este ejercicio se definieron las siguientes tasas de interés:
-
-- Ahorro: 2%
-- Préstamo: 5%
-- Hipoteca: 4%
-
-El interés se calcula sobre el saldo inicial de cada cuenta y se
-almacena junto con el saldo final.
-
-3. Reporte de Transacciones diarias
-
-Procesa transacciones.csv y detecta transacciones anómalas según 
-las reglas de validación definidas, registrando la anomalía, sin 
-omitir el procesamiento de ese dato y almacenándolo en la base de
-datos.
+Estos procesos validan, transforman y almacenan la información proveniente de los archivos CSV en Oracle Database.
 
 ## Configuración de la base de datos
 
@@ -129,77 +242,6 @@ application.properties:
 - DB_USERNAME
 - DB_PASSWORD
 - DB_TNS_ADMIN
-
-## Procesamiento y tolerancia a fallos
-
-Los Jobs utilizan procesamiento por chunks y ejecución concurrente mediante `ThreadPoolTaskExecutor`.
-
-El tamaño del chunk y los parámetros del executor se encuentran definidos mediante 
-propiedades externas en `application.properties`, permitiendo ajustar la configuración 
-de acuerdo con las características del proceso y los recursos disponibles.
-
-El executor utiliza `CallerRunsPolicy` como estrategia ante saturación, 
-permitiendo que el hilo que intenta enviar una tarea la ejecute directamente 
-cuando el pool y la cola se encuentran ocupados.
-
-### Tolerancia a fallos
-
-Los Jobs utilizan políticas de tolerancia a fallos mediante `faultTolerant()`.
-
-Las excepciones propias de las reglas de negocio son controladas mediante skip, 
-permitiendo omitir registros inválidos sin detener completamente el procesamiento.
-
-Además, se implementaron políticas de reintento para errores transitorios
-relacionados con el acceso a la base de datos:
-
-- `CannotAcquireLockException`
-- `TransientDataAccessException`
-
-Cada una de estas excepciones puede ser reintentada hasta 3 veces mediante `retryLimit(3)`.
-
-También se controla `DuplicateKeyException` en los procesos correspondientes, 
-permitiendo manejar registros que ya fueron almacenados previamente.
-
-### Idempotencia
-
-Los procesos cuentan con mecanismos de idempotencia mediante restricciones de 
-unicidad en las tablas de destino y el manejo de `DuplicateKeyException`.
-
-Esto permite realizar reejecuciones de los Jobs sin generar duplicaciones de 
-información previamente almacenada. Los registros que ya cumplen las condiciones de 
-unicidad son detectados y omitidos durante la escritura.
-
-### Monitoreo y logging
-
-Para observar el comportamiento de los procesos se implementaron `StepExecutionListener` 
-y `JobExecutionListener`.
-
-Los listeners registran información relevante de cada ejecución, incluyendo:
-
-- Job ejecutado
-- Step ejecutado
-- Estado de la ejecución
-- Cantidad de registros leídos
-- Cantidad de registros escritos
-- Cantidad de registros omitidos
-- Cantidad de errores
-- Tiempo de ejecución
-- Memoria utilizada
-- Memoria máxima disponible
-
-El registro se realiza mediante SLF4J/Logback, utilizando distintos niveles según el tipo de evento:
-
-- INFO: inicio y finalización de Jobs y Steps, además de métricas generales.
-- WARN: registros omitidos y situaciones esperadas que requieren seguimiento.
-- ERROR: errores inesperados o fallos durante la ejecución.
-
-Los mensajes incluyen información del Job y Step correspondiente, facilitando la trazabilidad de las ejecuciones.
-
-### Cierre de recursos 
-
-Para evitar que los hilos del procesamiento paralelo mantengan la aplicación en ejecución
-una vez finalizado el Job, se implementó un componente `ExecutorShutdown` que cierra
-los ThreadPoolTaskExecutor mediante `@PreDestroy`.
 
 ## Ejecución
 
@@ -232,6 +274,14 @@ Por ejemplo:
 Las variables deben adaptarse a la configuración de la base de datos
 utilizada por cada usuario.
 
+Luego se puede iniciar la aplicación mediante:
+
+`mvn spring-boot:run`
+
+La aplicación se ejecuta por defecto en:
+
+`http://localhost:8080`
+
 ### 3. Base de datos
 
 El proyecto requiere un usuario de Oracle con permisos suficientes
@@ -244,22 +294,7 @@ que contiene la creación de las tablas utilizadas por los Jobs.
 Además, Spring Batch inicializa las tablas necesarias para mantener
 el historial de ejecución de los Jobs.
 
-### 4. Configuración de los parámetros de ejecución
-
-Los parámetros de concurrencia se encuentran en application.properties 
-y pueden modificarse antes de ejecutar la aplicación.
-
-Entre ellos se encuentran:
-
-app.movimiento.chunk-size=20
-app.movimiento.core-pool-size=4
-app.movimiento.max-pool-size=8
-app.movimiento.queue-capacity=50
-
-Los nombres y valores pueden variar según el Job. Se recomienda revisar 
-las propiedades correspondientes antes de ejecutar cada proceso.
-
-### 5. Ejecución de los Jobs
+### 4. Ejecución de los Jobs
 
 El proyecto contiene tres Jobs independientes. Para ejecutar un Job
 específico, se debe indicar su nombre mediante la propiedad:
@@ -283,14 +318,29 @@ ejecutar.
 Después de seleccionar el Job, se puede ejecutar la aplicación
 Spring Boot normalmente.
 
-### 6. Archivos de entrada
+### 5. Autenticación
 
-Los archivos CSV utilizados por los Jobs se encuentran en:
+Antes de acceder a los BFF se debe obtener un token mediante:
 
-`src/main/resources/`
+`POST /auth/login`
 
-- `cuentas_anuales.csv`
-- `intereses.csv`
-- `transacciones.csv`
+Ejemplo:
 
-No es necesario modificar sus rutas para ejecutar el proyecto.
+{
+    "username": "usuarioMobile",
+    "password": "mobile123"
+}
+
+El token obtenido debe utilizarse en las solicitudes protegidas mediante el header:
+
+Authorization: Bearer <token>
+
+### 6. Usuarios de prueba
+
+| Usuario | Contraseña | Rol |
+| :---: | :---: | :---: |
+| usuarioWeb | web123 | ROL_WEB |
+| usuarioMobile | mobile123 | ROL_MOBILE |
+| usuarioAtm | atm123 | ROL_ATM |
+
+Estas credenciales corresponden únicamente a usuarios de prueba definidos en memoria para demostrar la autenticación y autorización por canal.
