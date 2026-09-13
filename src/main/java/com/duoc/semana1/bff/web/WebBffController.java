@@ -1,11 +1,16 @@
 package com.duoc.semana1.bff.web;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.duoc.semana1.bff.web.dto.WebInteresResponse;
+import com.duoc.semana1.bff.web.dto.WebMovimientoResponse;
 import com.duoc.semana1.bff.web.dto.WebResumenResponse;
+import com.duoc.semana1.bff.web.dto.WebTransaccionResponse;
 
 @RestController
 @RequestMapping("/api/web")
@@ -22,5 +27,24 @@ public class WebBffController {
             @PathVariable Long cuentaId
     ) {
         return webBffService.obtenerResumen(cuentaId);
+    }
+
+    @GetMapping("/cuentas/{cuentaId}/movimientos")
+    public List<WebMovimientoResponse> obtenerMovimientos(
+            @PathVariable Long cuentaId
+    ) {
+        return webBffService.obtenerMovimientos(cuentaId);
+    }
+
+    @GetMapping("/cuentas/{cuentaId}/intereses")
+    public List<WebInteresResponse> obtenerIntereses(
+            @PathVariable Long cuentaId
+    ) {
+        return webBffService.obtenerIntereses(cuentaId);
+    }
+
+    @GetMapping("/transacciones")
+    public List<WebTransaccionResponse> obtenerTransacciones() {
+        return webBffService.obtenerTransacciones();
     }
 }

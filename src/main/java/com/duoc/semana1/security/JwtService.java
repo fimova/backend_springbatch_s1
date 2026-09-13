@@ -1,11 +1,15 @@
 package com.duoc.semana1.security;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+
+import org.springframework.beans.factory.annotation.Value;
+import java.nio.charset.StandardCharsets;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -14,13 +18,46 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY =
-            "BancoXYZSecretKeyParaJWT2026BancoXYZ";
+    private final SecretKey key;
+    private final long accessTokenExpiration;
+    private final long refreshTokenExpiration;
 
-    private final SecretKey key =
-            Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+    public JwtService(
+            @Value("${jwt.secret}") String secretKey,
+            @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
+            @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration
+    ) {
+        this.key = Keys.hmacShaKeyFor(
+                secretKey.getBytes(StandardCharsets.UTF_8)
+        );
 
-    public String generarToken(UserDetails userDetails) {
+        this.accessTokenExpiration = accessTokenExpiration;
+        this.refreshTokenExpiration = refreshTokenExpiration;
+    }
+
+    public String generarAccessToken(UserDetails userDetails) {
+
+        return generarToken(
+                userDetails,
+                "access",
+                accessTokenExpiration
+        );
+    }
+
+    public String generarRefreshToken(UserDetails userDetails) {
+
+        return generarToken(
+                userDetails,
+                "refresh",
+                refreshTokenExpiration
+        );
+    }
+
+    private String generarToken(
+            UserDetails userDetails,
+            String tipo,
+            long expiracion
+    ) {
 
         return Jwts.builder()
                 .subject(userDetails.getUsername())
@@ -32,11 +69,12 @@ public class JwtService {
                                         authority.getAuthority())
                                 .toList()
                 )
+                .claim("type", tipo)
                 .issuedAt(new Date())
                 .expiration(
                         new Date(
                                 System.currentTimeMillis()
-                                        + 1000 * 60 * 60
+                                        + expiracion
                         )
                 )
                 .signWith(key)
@@ -60,6 +98,25 @@ public class JwtService {
                 && !obtenerClaims(token)
                         .getExpiration()
                         .before(new Date());
+    }
+
+    public String obtenerTipo(String token) {
+
+        return obtenerClaims(token)
+                .get("type", String.class);
+    }
+
+    public void imprimirClaims(String token) {
+
+        Claims claims = obtenerClaims(token);
+
+        System.out.println("===== JWT CLAIMS =====");
+        System.out.println("Subject: " + claims.getSubject());
+        System.out.println("Roles: " + claims.get("roles"));
+        System.out.println("Type: " + claims.get("type"));
+        System.out.println("Issued At: " + claims.getIssuedAt());
+        System.out.println("Expiration: " + claims.getExpiration());
+        System.out.println("======================");
     }
 
     private Claims obtenerClaims(String token) {

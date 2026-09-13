@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.duoc.semana1.bff.mobile.dto.MobileCuentaResponse;
 import com.duoc.semana1.bff.mobile.dto.MobileMovimientoResponse;
 import com.duoc.semana1.bff.mobile.dto.MobileResumenResponse;
+import com.duoc.semana1.exception.ResourceNotFoundException;
 import com.duoc.semana1.model.CuentaInteres;
 import com.duoc.semana1.model.MovimientoAnual;
 import com.duoc.semana1.services.CuentaInteresService;
@@ -16,103 +17,94 @@ import java.util.List;
 @Service
 public class MobileBffService {
 
-    private final CuentaInteresService cuentaInteresService;
-    private final MovimientoAnualService movimientoAnualService;
+        private final CuentaInteresService cuentaInteresService;
+        private final MovimientoAnualService movimientoAnualService;
 
-    public MobileBffService(
-            CuentaInteresService cuentaInteresService,
-            MovimientoAnualService movimientoAnualService
-    ) {
-        this.cuentaInteresService = cuentaInteresService;
-        this.movimientoAnualService = movimientoAnualService;
-    }
-
-    public MobileResumenResponse obtenerResumen(Long cuentaId) {
-
-        List<CuentaInteres> cuentas =
-                cuentaInteresService.obtenerPorCuenta(cuentaId);
-
-        List<MovimientoAnual> movimientos =
-                movimientoAnualService.obtenerPorCuenta(cuentaId);
-
-        List<MovimientoAnual> movimientosRecientes =
-                movimientos.stream()
-                .limit(3)
-                .toList();
-
-        MobileResumenResponse response =
-                new MobileResumenResponse();
-
-        response.setCuenta(mapearCuenta(cuentas));
-
-        if (!cuentas.isEmpty()) {
-            CuentaInteres cuenta = cuentas.get(0);
-
-            response.setInteresAplicado(
-                    cuenta.getInteresAplicado()
-            );
-
-            response.setPeriodo(
-                    cuenta.getPeriodo()
-            );
+        public MobileBffService(
+                        CuentaInteresService cuentaInteresService,
+                        MovimientoAnualService movimientoAnualService) {
+                this.cuentaInteresService = cuentaInteresService;
+                this.movimientoAnualService = movimientoAnualService;
         }
 
-        response.setMovimientos(
-                mapearMovimientos(movimientosRecientes)
-        );
+        public MobileResumenResponse obtenerResumen(Long cuentaId) {
 
-        return response;
-    }
+                List<CuentaInteres> cuentas = cuentaInteresService.obtenerPorCuenta(cuentaId);
 
-    private MobileCuentaResponse mapearCuenta(
-            List<CuentaInteres> cuentas
-    ) {
+                MobileResumenResponse response = new MobileResumenResponse();
 
-        if (cuentas.isEmpty()) {
-            return null;
+                response.setCuenta(mapearCuenta(cuentas, cuentaId));
+
+                if (!cuentas.isEmpty()) {
+                        CuentaInteres cuenta = cuentas.get(0);
+
+                        response.setInteresAplicado(
+                                        cuenta.getInteresAplicado());
+
+                        response.setPeriodo(
+                                        cuenta.getPeriodo());
+                }
+
+                response.setMovimientos(
+                                obtenerMovimientos(cuentaId));
+
+                return response;
         }
 
-        CuentaInteres cuenta = cuentas.get(0);
+        public List<MobileMovimientoResponse> obtenerMovimientos(
+                        Long cuentaId) {
 
-        MobileCuentaResponse response =
-                new MobileCuentaResponse();
+                List<MovimientoAnual> movimientos = movimientoAnualService.obtenerPorCuenta(cuentaId);
 
-        response.setCuentaId(cuenta.getCuentaId());
-        response.setNombre(cuenta.getNombre());
-        response.setSaldo(cuenta.getSaldo());
+                List<MovimientoAnual> movimientosRecientes = movimientos.stream()
+                                .limit(3)
+                                .toList();
 
-        return response;
-    }
+                return mapearMovimientos(movimientosRecientes);
+        }
 
-    private List<MobileMovimientoResponse> mapearMovimientos(
-            List<MovimientoAnual> movimientos
-    ) {
+        private MobileCuentaResponse mapearCuenta(
+                        List<CuentaInteres> cuentas,
+                        Long cuentaId) {
 
-        return movimientos.stream()
-                .map(movimiento -> {
+                if (cuentas.isEmpty()) {
+                        throw new ResourceNotFoundException(
+                                        "No se encontró la cuenta con id: " + cuentaId);
+                }
 
-                    MobileMovimientoResponse response =
-                            new MobileMovimientoResponse();
+                CuentaInteres cuenta = cuentas.get(0);
 
-                    response.setFecha(
-                            movimiento.getFecha()
-                    );
+                MobileCuentaResponse response = new MobileCuentaResponse();
 
-                    response.setTransaccion(
-                            movimiento.getTransaccion()
-                    );
+                response.setCuentaId(cuenta.getCuentaId());
+                response.setNombre(cuenta.getNombre());
+                response.setSaldo(cuenta.getSaldo());
 
-                    response.setMonto(
-                            movimiento.getMonto()
-                    );
+                return response;
+        }
 
-                    response.setDescripcion(
-                            movimiento.getDescripcion()
-                    );
+        private List<MobileMovimientoResponse> mapearMovimientos(
+                        List<MovimientoAnual> movimientos) {
 
-                    return response;
-                })
-                .toList();
-    }
+                return movimientos.stream()
+                                .map(movimiento -> {
+
+                                        MobileMovimientoResponse response = new MobileMovimientoResponse();
+
+                                        response.setFecha(
+                                                        movimiento.getFecha());
+
+                                        response.setTransaccion(
+                                                        movimiento.getTransaccion());
+
+                                        response.setMonto(
+                                                        movimiento.getMonto());
+
+                                        response.setDescripcion(
+                                                        movimiento.getDescripcion());
+
+                                        return response;
+                                })
+                                .toList();
+        }
 }
-

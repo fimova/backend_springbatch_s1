@@ -4,10 +4,17 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
 //para solicitar retiro de dinero
 @Data
 public class AtmRetiroRequest {
 
-    private Long cuentaId;
+    @NotNull(message = "El monto es obligatorio")
+    @DecimalMin(
+            value = "0.01",
+            message = "El monto debe ser mayor que 0"
+    )
     private BigDecimal monto;
 }
