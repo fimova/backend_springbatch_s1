@@ -266,9 +266,9 @@ JWT_SECRET
 
 En `application.properties` se utiliza:
 
-jwt.secret=${JWT_SECRET}
-jwt.access-token-expiration=3600000
-jwt.refresh-token-expiration=604800000
+- jwt.secret=${JWT_SECRET}
+- jwt.access-token-expiration=3600000
+- jwt.refresh-token-expiration=604800000
 
 Por buenas prácticas, ésta no se incluye en el respositorio. La clave a utilizar debe ser suficientemente larga.
 
@@ -467,8 +467,6 @@ variables de entorno:
 - `DB_TNS_ADMIN`: ruta local donde se encuentra la wallet de Oracle
 - `JWT_SECRET`: clave utilizada para firmar los tokens JWT.
 
-Luego se puede iniciar la aplicación mediante:
-
 ### 3. Ejecución de la aplicación
 
 La aplicación se inicia mediante:
@@ -485,14 +483,18 @@ El proyecto requiere un usuario de Oracle con permisos suficientes
 para conectarse a la base de datos y crear las tablas utilizadas por
 la aplicación.
 
-Al iniciar la aplicación por primera vez, Spring ejecuta el archivo `schema.sql`,
-que contiene la creación de las tablas utilizadas por los Jobs.
+Las tablas de Spring Batch se inicializan según la configuración de:
 
-Además, la primera vez Spring Batch también inicializa las tablas necesarias para mantener
-el historial de ejecución de los Jobs.
+`spring.batch.jdbc.initialize-schema`
 
-Esta configuración puede ser cambiada desde `application.properties`, cambiando 
-`spring.sql.init.mode` y `spring.batch.jdbc.initialize-schema` a `never`.
+La inicialización automática del esquema SQL de la aplicación se encuentra desactivada:
+
+`spring.sql.init.mode=never`
+
+Por lo tanto, las tablas de negocio deben encontrarse previamente creadas en la base de datos.
+
+Si se ejecuta la aplicación por primera vez, se recomienda cambiar esta
+configuración desde `application.properties`, indicando `always`.
 
 ### 5. Ejecución de los Jobs
 
@@ -548,8 +550,6 @@ Estas credenciales corresponden únicamente a usuarios de prueba definidos en me
 Después de obtener el access token, este debe enviarse en las solicitudes protegidas mediante:
 
 `Authorization: Bearer <accessToken>`
-
-## Resumen de endpoints
 
 ## Resumen de endpoints
 
